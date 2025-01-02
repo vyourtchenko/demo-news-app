@@ -8,4 +8,14 @@
         <RootNamespace>DemoNewsApp</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Folder Include="fix\" />
+      <Folder Include="lib\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="QuickFIXn.Core" Version="1.12.0" />
+      <PackageReference Include="QuickFIXn.FIX4.4" Version="1.12.0" />
+    </ItemGroup>
+
 </Project>

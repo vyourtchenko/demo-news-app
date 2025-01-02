@@ -1,5 +1,8 @@
 .DS_Store
 **/.DS_Store
 **/obj/
+**/bin/
+**/store/
+**/log/
 .idea
 **/.idea
