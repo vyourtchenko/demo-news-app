@@ -13,7 +13,7 @@ public class InitiatorApp : MessageCracker, IApplication
 
     public void FromApp(Message msg, SessionID sessionID)
     {
-        Console.WriteLine("IN:  " + msg);
+        // Console.WriteLine("IN:  " + msg);
         Crack(msg, sessionID);
     }
 
@@ -36,17 +36,17 @@ public class InitiatorApp : MessageCracker, IApplication
 
     public void FromAdmin(Message msg, SessionID sessionID)
     {
-        Console.WriteLine("IN: " + msg);
+        // Console.WriteLine("IN: " + msg);
     }
 
     public void ToAdmin(Message msg, SessionID sessionID)
     {
-        Console.WriteLine("OUT: " + msg);
+        // Console.WriteLine("OUT: " + msg);
     }
 
     public void ToApp(Message msg, SessionID sessionID)
     {
-        Console.WriteLine("OUT: " + msg);
+        // Console.WriteLine("OUT: " + msg);
     }
 
     public void OnMessage(QuickFix.FIX44.News n, SessionID s)
@@ -69,10 +69,10 @@ public class InitiatorApp : MessageCracker, IApplication
                 try
                 {
                     Thread.Sleep(5000);
-                    if (_session.IsLoggedOn)
+                    if (_session == null || _session.IsLoggedOn)
                     {
                         this.SendNews();
-                        Console.WriteLine("Message Sent");
+                        // Console.WriteLine("Message Sent");
                     }
                     else
                     {
