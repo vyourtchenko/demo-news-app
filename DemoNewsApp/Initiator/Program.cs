@@ -8,7 +8,6 @@ using Message = QuickFix.Message;
 
 public class InitiatorApp : MessageCracker, IApplication
 {
-    private Session? _session = null;
     private Random rng = new Random();
 
     public void FromApp(Message msg, SessionID sessionID)
@@ -19,9 +18,7 @@ public class InitiatorApp : MessageCracker, IApplication
 
     public void OnCreate(SessionID sessionID)
     {
-        _session = Session.LookupSession(sessionID);
-        if (_session is null)
-            throw new ApplicationException("Somehow session is not found");
+        Console.WriteLine("Session - " + sessionID);
     }
 
     public void OnLogout(SessionID sessionID)
@@ -32,6 +29,7 @@ public class InitiatorApp : MessageCracker, IApplication
     public void OnLogon(SessionID sessionID)
     {
         Console.WriteLine("Logon - " + sessionID);
+        this.SendNews(sessionID);
     }
 
     public void FromAdmin(Message msg, SessionID sessionID)
@@ -62,108 +60,75 @@ public class InitiatorApp : MessageCracker, IApplication
         }
     }
     
-    public void Run()
+    private void SendMessage(Message m, SessionID s)
+    {
+        Session.SendToTarget(m, s);
+    }
+
+    private void SendNews(SessionID s)
+    {
+        int temp  = this.rng.Next(-27, 37);
+        News n = new News();
+        n.Headline = new Headline("Breaking news!");
+        
+        News.LinesOfTextGroup textGroup = new News.LinesOfTextGroup();
+        textGroup.Text = new Text("Hank: Nothing is happening, it's so boring...");
+        n.AddGroup(textGroup);
+
+        textGroup = new News.LinesOfTextGroup();
+        textGroup.Text = new Text("Hank: Now here's Tom with the weather!");
+        n.AddGroup(textGroup);
+
+        textGroup = new News.LinesOfTextGroup();
+        textGroup.Text = new Text("Tom: It's " + temp + "F outside, man that's cold... Why is it always so cold in Chicago?");
+        n.AddGroup(textGroup);
+        
+        this.SendMessage(n, s);
+    }
+    
+    void ParseAck(News n)
+    {
+        if (n.IsSetHeadline())
         {
-            while (true)
+            string headline = n.Headline.getValue();
+            Console.WriteLine($"Headline: {headline}");
+        }
+        else
+        {
+            Console.WriteLine("Headline is missing.");
+        }
+
+        if (n.IsSetField(LinesOfText.TAG))
+        {
+            int numOfLines = n.GetInt(LinesOfText.TAG);
+            for (int i = 1; i <= numOfLines; i++)
             {
                 try
                 {
-                    Thread.Sleep(5000);
-                    if (_session == null || _session.IsLoggedOn)
+                    News.LinesOfTextGroup textGroup = new News.LinesOfTextGroup();
+                    n.GetGroup(i, textGroup);
+
+                    if (textGroup.IsSetText())
                     {
-                        this.SendNews();
-                        // Console.WriteLine("Message Sent");
+                        string line = textGroup.Text.getValue();
+                        Console.WriteLine($"Line {i}: {line}");
                     }
                     else
                     {
-                        Console.WriteLine("Session is not logged in");
+                        Console.WriteLine($"Line {i} has no text.");
                     }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Message Not Sent: " + e.Message);
-                    Console.WriteLine("StackTrace: " + e.StackTrace);
+                    Console.WriteLine($"Error reading line {i}: {ex.Message}");
                 }
             }
         }
-
-        private void SendMessage(Message m)
+        else
         {
-            if (_session is not null)
-                _session.Send(m);
-            else
-            {
-                // This probably won't ever happen.
-                Console.WriteLine("Can't send message: session not created.");
-            }
+            Console.WriteLine("No LinesOfText found in the message.");
         }
-
-        private void SendNews()
-        {
-            int temp  = this.rng.Next(-27, 37);
-            News n = new News();
-            n.Headline = new Headline("Breaking news!");
-            
-            News.LinesOfTextGroup textGroup = new News.LinesOfTextGroup();
-            textGroup.Text = new Text("Hank: Nothing is happening, it's so boring...");
-            n.AddGroup(textGroup);
-
-            textGroup = new News.LinesOfTextGroup();
-            textGroup.Text = new Text("Hank: Now here's Tom with the weather!");
-            n.AddGroup(textGroup);
-
-            textGroup = new News.LinesOfTextGroup();
-            textGroup.Text = new Text("Tom: It's " + temp + "F outside, man that's cold... Why is it always so cold in Chicago?");
-            n.AddGroup(textGroup);
-            
-            n.LinesOfText = new LinesOfText(3);
-            
-            this.SendMessage(n);
-        }
-        
-        void ParseAck(News n)
-        {
-            if (n.IsSetHeadline())
-            {
-                string headline = n.Headline.getValue();
-                Console.WriteLine($"Headline: {headline}");
-            }
-            else
-            {
-                Console.WriteLine("Headline is missing.");
-            }
-
-            if (n.IsSetField(LinesOfText.TAG))
-            {
-                int numOfLines = n.GetInt(LinesOfText.TAG);
-                for (int i = 1; i <= numOfLines; i++)
-                {
-                    try
-                    {
-                        News.LinesOfTextGroup textGroup = new News.LinesOfTextGroup();
-                        n.GetGroup(i, textGroup);
-
-                        if (textGroup.IsSetText())
-                        {
-                            string line = textGroup.Text.getValue();
-                            Console.WriteLine($"Line {i}: {line}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Line {i} has no text.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error reading line {i}: {ex.Message}");
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("No LinesOfText found in the message.");
-            }
-        }
+    }
 }
 public class MyApp
 {
@@ -182,8 +147,10 @@ public class MyApp
                 logFactory);
 
             initiator.Start();
+            
             Console.WriteLine("Initiator Started");
-            initiatorApp.Run();
+            Console.WriteLine("Press <enter> to quit");
+            Console.Read();
             
             initiator.Stop();
         }
